@@ -1,20 +1,27 @@
 package com.example.map_kensaku_app_01;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.maps.model.LatLng;
 
+import android.content.Intent;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.renderscript.ScriptGroup;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
@@ -34,6 +41,11 @@ public class MainActivity extends AppCompatActivity {
 
     private List<LocationData> locationDataList;
 
+    private List<LocationData> items;
+    private int kensaku_i;
+    private RadioButton RadioButtonB2;
+    private ImageButton ImageButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,10 +54,17 @@ public class MainActivity extends AppCompatActivity {
         editTextPostalCode = findViewById(R.id.editTextPostalCode);
         buttonSearch = findViewById(R.id.buttonSearch);
         listViewLocations = findViewById(R.id.listViewLocations);
+
+
         locationAdapter = new LocationAdapter(this);
         listViewLocations.setAdapter(locationAdapter);
 
-        // CSVファイルからデータを読み込む
+        // === エディットテキスト　数字入力設定
+        editTextPostalCode.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+        /**
+         *    // CSVファイルからデータを読み込む
+         */
         locationDataList = loadLocationData();
 
         buttonSearch.setOnClickListener(new View.OnClickListener() {
@@ -63,6 +82,57 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+
+        /**
+         *  リストビュー
+         */
+        listViewLocations.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                // クリックした位置の情報を取得する
+                LocationData clickedLocation = (LocationData) locationAdapter.getItem(position);
+
+                Double ido = clickedLocation.getLatitude(); // 緯度
+                Double keido = clickedLocation.getLongitude(); // 経度取得
+
+                // === マップへ飛ばす
+                openMapActivity(ido, keido);
+
+               //Toast.makeText(MainActivity.this, "クリックOK" + clickedLocation.getFacilityName(), Toast.LENGTH_SHORT).show();
+
+            }
+        });
+
+
+
+        /**
+         *  ========= ラジオボタン （検索範囲を、何キロにするかをきめる　デフォルト 3km） =========
+         */
+
+        RadioGroup radioGroup = (RadioGroup) findViewById(R.id.RadioGroupB);
+        RadioButton radioButton2 = (RadioButton) findViewById(R.id.RadioButtonB2);
+
+        // === 初期値　取得
+        RadioButtonB2 = findViewById(R.id.RadioButtonB2);
+        String tmp_radio = (String) RadioButtonB2.getText();
+        kensaku_i = Str_replace_int(tmp_radio, "km");
+
+        // ラジオグループのチェック状態が変更された時に呼び出されるコールバックリスナーを登録します
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                RadioButton radioButton = (RadioButton) findViewById(checkedId);
+
+                String tmp_radio = (String) radioButton.getText();
+                kensaku_i = Str_replace_int(tmp_radio, "km");
+
+            }
+        });
+
+        // 指定した ID のラジオボタンをチェックします
+        radioButton2.setChecked(true);
+
     }
 
     private List<LocationData> loadLocationData() {
@@ -78,17 +148,17 @@ public class MainActivity extends AppCompatActivity {
                 String[] data = line.split(",");
                 if (data.length >= 3) {
                     String facilityName = data[0];
+                    String zyuusyo = data[1];
                     double latitude = Double.parseDouble(data[2]); // 緯度
                     double longitude = Double.parseDouble(data[3]); // 経度
 
-                    System.out.println("loadLocationData => facilityName:::" + count + "行データ:::" + facilityName
-                            + ":::latitude:::" +
+                    System.out.println("loadLocationData => facilityName:::" + count + "行データ:::" + facilityName + ":::latitude:::" +
                             latitude + ":::latitude:::" + latitude);
 
                     // === 行数カウント
                     count++;
 
-                    LocationData locationData = new LocationData(facilityName, latitude, longitude);
+                    LocationData locationData = new LocationData(facilityName, latitude, longitude, zyuusyo);
                     dataList.add(locationData);
                 }
             }
@@ -128,37 +198,9 @@ public class MainActivity extends AppCompatActivity {
             double location_lat_d = Double.parseDouble(location_lat);
             double location_lon_d = Double.parseDouble(location_lon);
 
-            latitude = location_lat_d; // 緯度
+            latitude = location_lat_d;  // 緯度
             longitude = location_lon_d; // 経度
 
-            /*
-             * try {
-             * InputStream inputStream =
-             * getResources().openRawResource(R.raw.location_data);
-             * BufferedReader reader = new BufferedReader(new
-             * InputStreamReader(inputStream));
-             * 
-             * String line;
-             * while ((line = reader.readLine()) != null) {
-             * String[] data = line.split(",");
-             * if (data.length >= 3 && data[0].equals(postalCode)) {
-             * 
-             * latitude = Double.parseDouble(data[2]);
-             * longitude = Double.parseDouble(data[3]);
-             * 
-             * reader.close();
-             * inputStream.close();
-             * break;
-             * }
-             * }
-             * 
-             * reader.close();
-             * inputStream.close();
-             * } catch (IOException e) {
-             * e.printStackTrace();
-             * }
-             * 
-             */
 
             return new LatLng(latitude, longitude);
         }
@@ -174,10 +216,8 @@ public class MainActivity extends AppCompatActivity {
                 location1.setLatitude(latLng.latitude);
                 location1.setLongitude(latLng.longitude);
 
-                System.out.println(
-                        "onPostExecute ::: ********* location1 ********* latLng.latitude:::値:::" + latLng.latitude);
-                System.out.println(
-                        "onPostExecute ::: ********* location1 ********* latLng.longitude:::値:::" + latLng.longitude);
+                System.out.println("onPostExecute ::: ********* location1 ********* latLng.latitude:::値:::" + latLng.latitude);
+                System.out.println("onPostExecute ::: ********* location1 ********* latLng.longitude:::値:::" + latLng.longitude);
 
                 for (LocationData data : locationDataList) {
                     Location location2 = new Location("");
@@ -192,8 +232,12 @@ public class MainActivity extends AppCompatActivity {
                     float distance = location1.distanceTo(location2) / 1000; // メートルをキロメートルに変換
 
                     System.out.println("onPostExecute distance 値:::" + distance);
-                    // === distance <= 3 ３キロ以内
-                    if (distance <= 3) {
+
+                    /**
+                     *   kensaku_i => デフォルト値 ３キロ
+                     *   === distance <= 3    ３キロ以内
+                     */
+                    if (distance <= kensaku_i) {
                         filteredList.add(data);
                     }
                 }
@@ -209,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * 住所から座標を取得
+     *   住所から座標を取得
      */
     private LatLng getLocationFromAddress(String strAddress) {
         Geocoder coder = new Geocoder(this);
@@ -232,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * 開始文字と、終了文字を指定して、その間の文字列を取得
+     *    開始文字と、終了文字を指定して、その間の文字列を取得
      *
      */
     public static String Substring(String all_str, String start, String end) {
@@ -248,4 +292,25 @@ public class MainActivity extends AppCompatActivity {
         return all_str.substring(startIndex + start.length(), endIndex);
 
     }
+
+    private void openMapActivity(double latitude, double longitude) {
+        Intent intent = new Intent(MainActivity.this, MapActivity.class);
+        intent.putExtra("latitude", latitude);
+        intent.putExtra("longitude", longitude);
+        startActivity(intent);
+    }
+
+    /**
+     *  文字列を空白に置換して、integer型に変換する。
+     */
+    public int Str_replace_int(String str, String cut) {
+
+        String result_str = str.replace(cut, "");
+
+        int result_num = Integer.parseInt(result_str);
+        return result_num;
+
+    }
+
+
 }

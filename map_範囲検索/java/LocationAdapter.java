@@ -5,7 +5,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -56,6 +58,10 @@ public class LocationAdapter extends BaseAdapter {
             viewHolder.textViewName = convertView.findViewById(R.id.textViewName);
             viewHolder.textViewLatitude = convertView.findViewById(R.id.textViewLatitude);
             viewHolder.textViewLongitude = convertView.findViewById(R.id.textViewLongitude);
+            viewHolder.textView_addres = convertView.findViewById(R.id.textView_addres);
+
+            // 地図アイコン ボタン
+            viewHolder.list_image_icon = convertView.findViewById(R.id.list_image_icon);
 
             convertView.setTag(viewHolder);
 
@@ -67,8 +73,12 @@ public class LocationAdapter extends BaseAdapter {
 
         // === 値をセット
         viewHolder.textViewName.setText(locationData.getFacilityName());
-        viewHolder.textViewLatitude.setText(String.valueOf(locationData.getLatitude()));
-        viewHolder.textViewLongitude.setText(String.valueOf(locationData.getLongitude()));
+        viewHolder.textViewLatitude.setText("●緯度：" + String.valueOf(locationData.getLatitude()));
+        viewHolder.textViewLongitude.setText("●経度：" + String.valueOf(locationData.getLongitude()));
+
+        viewHolder.textView_addres.setText(locationData.getZyuusyo()); // === 住所
+
+        viewHolder.list_image_icon.setText("");
 
         return convertView;
     }
@@ -77,6 +87,9 @@ public class LocationAdapter extends BaseAdapter {
         TextView textViewName;
         TextView textViewLatitude;
         TextView textViewLongitude;
+        TextView textView_addres; // 住所
+
+        TextView list_image_icon;
     }
 
 
